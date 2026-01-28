@@ -58,6 +58,12 @@ class TaskbarItemView: NSView {
 
     override var acceptsFirstResponder: Bool { true }
 
+    // Accept first mouse click even when window is not key
+    // This prevents needing to double-click to activate a window
+    override func acceptsFirstMouse(for event: NSEvent?) -> Bool {
+        return true
+    }
+
     // Ensure tracking areas are set up when the view is added to window
     override func viewDidMoveToWindow() {
         super.viewDidMoveToWindow()
