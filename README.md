@@ -18,6 +18,24 @@
 
 </div>
 
+## Features
+
+### Windows-style Taskbar (New!)
+
+This fork adds a **persistent Windows-style taskbar** at the bottom of the screen:
+
+- Shows all open windows with app icons and titles
+- Click to focus any window instantly
+- Hover to preview window thumbnails
+- Per-screen taskbar for multi-monitor setups
+- Filter by current Space or show all windows
+- Automatically adjusts maximized windows to leave room for the taskbar
+- Fully customizable: height, icon size, font size, and more
+
+Configure in **Preferences → Appearance → Taskbar**.
+
+See [docs/taskbar.md](docs/taskbar.md) for technical design details.
+
 ## Building from Source
 
 ### Prerequisites
