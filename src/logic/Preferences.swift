@@ -92,6 +92,11 @@ class Preferences {
         "taskbarHeight": "32",
         "taskbarItemHeight": "26",
         "taskbarIconSize": "18",
+        "taskbarFontSize": "11",
+        "taskbarSpacesToShow": SpacesToShowPreference.visible.indexAsString,
+        "taskbarShowMinimizedWindows": ShowHowPreference.show.indexAsString,
+        "taskbarShowHiddenWindows": ShowHowPreference.hide.indexAsString,
+        "taskbarShowFullscreenWindows": ShowHowPreference.show.indexAsString,
     ]
 
     // system preferences
@@ -133,6 +138,11 @@ class Preferences {
     static var taskbarHeight: CGFloat { CGFloat(CachedUserDefaults.int("taskbarHeight")) }
     static var taskbarItemHeight: CGFloat { CGFloat(CachedUserDefaults.int("taskbarItemHeight")) }
     static var taskbarIconSize: CGFloat { CGFloat(CachedUserDefaults.int("taskbarIconSize")) }
+    static var taskbarFontSize: CGFloat { CGFloat(CachedUserDefaults.int("taskbarFontSize")) }
+    static var taskbarSpacesToShow: SpacesToShowPreference { CachedUserDefaults.macroPref("taskbarSpacesToShow", SpacesToShowPreference.allCases) }
+    static var taskbarShowMinimizedWindows: ShowHowPreference { CachedUserDefaults.macroPref("taskbarShowMinimizedWindows", ShowHowPreference.allCases) }
+    static var taskbarShowHiddenWindows: ShowHowPreference { CachedUserDefaults.macroPref("taskbarShowHiddenWindows", ShowHowPreference.allCases) }
+    static var taskbarShowFullscreenWindows: ShowHowPreference { CachedUserDefaults.macroPref("taskbarShowFullscreenWindows", ShowHowPreference.allCases) }
 
     // macro values
     static var appearanceStyle: AppearanceStylePreference { CachedUserDefaults.macroPref("appearanceStyle", AppearanceStylePreference.allCases) }

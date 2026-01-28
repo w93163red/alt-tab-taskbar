@@ -6,6 +6,7 @@ class TaskbarItemView: NSView {
     private var titleLabel: NSTextField!
     private var trackingArea: NSTrackingArea?
     private var isHovered = false
+    private var showPreviewTimer: Timer?
     private var iconSize: CGFloat { Preferences.taskbarIconSize }
     private let iconPadding: CGFloat = 6
     private let titlePadding: CGFloat = 4
@@ -32,7 +33,7 @@ class TaskbarItemView: NSView {
 
         // title label
         titleLabel = NSTextField(labelWithString: "")
-        titleLabel.font = NSFont.systemFont(ofSize: 11)
+        titleLabel.font = NSFont.systemFont(ofSize: Preferences.taskbarFontSize)
         titleLabel.textColor = .labelColor
         titleLabel.lineBreakMode = .byTruncatingTail
         titleLabel.translatesAutoresizingMaskIntoConstraints = false
@@ -79,6 +80,9 @@ class TaskbarItemView: NSView {
             appIcon.image = nil
         }
 
+        // update font size (in case preference changed)
+        titleLabel.font = NSFont.systemFont(ofSize: Preferences.taskbarFontSize)
+
         // update title - show window title or app name
         let title: String
         if window.title.isEmpty {
@@ -112,11 +116,23 @@ class TaskbarItemView: NSView {
     override func mouseEntered(with event: NSEvent) {
         isHovered = true
         updateBackgroundColor()
+        // show thumbnail preview after a short delay
+        if let window = window_ {
+            showPreviewTimer?.invalidate()
+            showPreviewTimer = Timer.scheduledTimer(withTimeInterval: 0.3, repeats: false) { [weak self] _ in
+                guard let self, self.isHovered else { return }
+                TaskbarPreviewPanel.shared.show(for: window, relativeTo: self)
+            }
+        }
     }
 
     override func mouseExited(with event: NSEvent) {
         isHovered = false
         updateBackgroundColor()
+        // hide thumbnail preview
+        showPreviewTimer?.invalidate()
+        showPreviewTimer = nil
+        TaskbarPreviewPanel.shared.hide()
     }
 
     override func mouseUp(with event: NSEvent) {

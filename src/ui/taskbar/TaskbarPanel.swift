@@ -8,7 +8,9 @@ class TaskbarPanel: NSPanel {
         self.screenUuid = screenUuid
         super.init(contentRect: .zero, styleMask: [.borderless, .nonactivatingPanel], backing: .buffered, defer: false)
         isFloatingPanel = true
-        level = .floating
+        // Use dock window level (20) so taskbar stays above maximized windows
+        // This is the same level macOS Dock uses
+        level = NSWindow.Level(rawValue: Int(CGWindowLevelForKey(.dockWindow)))
         collectionBehavior = [.canJoinAllSpaces, .stationary]
         hidesOnDeactivate = false
         titleVisibility = .hidden

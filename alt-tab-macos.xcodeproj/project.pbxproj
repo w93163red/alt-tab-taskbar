@@ -300,6 +300,7 @@
 		C367289274764620BDD2160F /* TaskbarView.swift in Sources */ = {isa = PBXBuildFile; fileRef = EEB00512369846288CC6ECDC /* TaskbarView.swift */; };
 		95875A597E804AD2B13E4C6C /* TaskbarItemView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B064811A1FE942A088D128DB /* TaskbarItemView.swift */; };
 		B2A1643914FE42FDB3B92A27 /* TaskbarManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = C7131D5CD57B4D3099E6BCA3 /* TaskbarManager.swift */; };
+		A1B2C3D4E5F647A8B9C0D1E2 /* TaskbarPreviewPanel.swift in Sources */ = {isa = PBXBuildFile; fileRef = F1E2D3C4B5A6978889706152 /* TaskbarPreviewPanel.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -736,6 +737,7 @@
 		EEB00512369846288CC6ECDC /* TaskbarView.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = TaskbarView.swift; sourceTree = "<group>"; };
 		B064811A1FE942A088D128DB /* TaskbarItemView.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = TaskbarItemView.swift; sourceTree = "<group>"; };
 		C7131D5CD57B4D3099E6BCA3 /* TaskbarManager.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = TaskbarManager.swift; sourceTree = "<group>"; };
+		F1E2D3C4B5A6978889706152 /* TaskbarPreviewPanel.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = TaskbarPreviewPanel.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -2008,6 +2010,7 @@
 				1A44A0D0B42640C487BEFF42 /* TaskbarPanel.swift */,
 				EEB00512369846288CC6ECDC /* TaskbarView.swift */,
 				B064811A1FE942A088D128DB /* TaskbarItemView.swift */,
+				F1E2D3C4B5A6978889706152 /* TaskbarPreviewPanel.swift */,
 			);
 			path = taskbar;
 			sourceTree = "<group>";
@@ -2464,6 +2467,7 @@
 				C367289274764620BDD2160F /* TaskbarView.swift in Sources */,
 				95875A597E804AD2B13E4C6C /* TaskbarItemView.swift in Sources */,
 				B2A1643914FE42FDB3B92A27 /* TaskbarManager.swift in Sources */,
+				A1B2C3D4E5F647A8B9C0D1E2 /* TaskbarPreviewPanel.swift in Sources */,
 				D04BAFBC862BA5FE0294EA7A /* AXUIElement.swift in Sources */,
 				D04BA73E90EFEF8247A5105D /* CGWindow.swift in Sources */,
 				D04BA004884A273D4D2D3EF1 /* HelperExtensions.swift in Sources */,
