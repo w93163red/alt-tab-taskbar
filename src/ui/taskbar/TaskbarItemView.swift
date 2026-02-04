@@ -153,7 +153,14 @@ class TaskbarItemView: NSView {
 
     override func mouseUp(with event: NSEvent) {
         guard bounds.contains(convert(event.locationInWindow, from: nil)) else { return }
-        window_?.focus()
+        guard let window = window_ else { return }
+        // if already focused, minimize; otherwise focus
+        if window.application.focusedWindow?.cgWindowId == window.cgWindowId,
+           window.application.runningApplication.isActive {
+            window.minDemin()
+        } else {
+            window.focus()
+        }
     }
 
     override func rightMouseUp(with event: NSEvent) {
