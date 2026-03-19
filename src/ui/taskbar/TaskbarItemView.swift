@@ -4,6 +4,8 @@ class TaskbarItemView: NSView {
     var window_: Window?
     private var appIcon: NSImageView!
     private var titleLabel: NSTextField!
+    private var badgeBackground: NSView!
+    private var badgeText: NSTextField!
     private var trackingArea: NSTrackingArea?
     private var isHovered = false
     private var showPreviewTimer: Timer?
@@ -23,7 +25,7 @@ class TaskbarItemView: NSView {
     private func setupView() {
         wantsLayer = true
         layer!.cornerRadius = 4
-        layer!.masksToBounds = true
+        layer!.masksToBounds = false
 
         // app icon
         appIcon = NSImageView()
@@ -38,6 +40,20 @@ class TaskbarItemView: NSView {
         titleLabel.lineBreakMode = .byTruncatingTail
         titleLabel.translatesAutoresizingMaskIntoConstraints = false
         addSubview(titleLabel)
+
+        // notification badge
+        badgeBackground = NSView()
+        badgeBackground.wantsLayer = true
+        badgeBackground.layer!.backgroundColor = NSColor(srgbRed: 1, green: 0.23, blue: 0.19, alpha: 1).cgColor
+        badgeBackground.layer!.cornerRadius = 7
+        badgeBackground.isHidden = true
+        addSubview(badgeBackground)
+
+        badgeText = NSTextField(labelWithString: "")
+        badgeText.font = NSFont.systemFont(ofSize: 9, weight: .bold)
+        badgeText.textColor = .white
+        badgeText.alignment = .center
+        badgeBackground.addSubview(badgeText)
 
         updateBackgroundColor()
     }
@@ -84,6 +100,19 @@ class TaskbarItemView: NSView {
         let labelHeight: CGFloat = 16
         let labelY = (bounds.height - labelHeight) / 2
         titleLabel.frame = NSRect(x: labelX, y: labelY, width: max(0, labelWidth), height: labelHeight)
+
+        // badge position: top-right of app icon
+        if !badgeBackground.isHidden {
+            badgeText.sizeToFit()
+            let textWidth = max(badgeText.frame.width, 10)
+            let badgeWidth = max(textWidth + 4, 14)
+            let badgeHeight: CGFloat = 14
+            badgeBackground.frame = NSRect(
+                x: appIcon.frame.maxX - badgeWidth * 0.6,
+                y: appIcon.frame.maxY - badgeHeight * 0.6,
+                width: badgeWidth, height: badgeHeight)
+            badgeText.frame = NSRect(x: 0, y: 0, width: badgeWidth, height: badgeHeight)
+        }
     }
 
     func updateContent(_ window: Window) {
@@ -108,6 +137,13 @@ class TaskbarItemView: NSView {
         }
         titleLabel.stringValue = title
         titleLabel.toolTip = title
+
+        // update badge
+        let dockLabel = window.dockLabel
+        badgeBackground.isHidden = dockLabel == nil || Preferences.hideAppBadges
+        if let dockLabel {
+            badgeText.stringValue = dockLabel
+        }
     }
 
     func preferredWidth() -> CGFloat {
