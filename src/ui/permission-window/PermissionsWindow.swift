@@ -5,6 +5,7 @@ class PermissionsWindow: NSWindow {
     var screenRecordingView: PermissionView!
     var canBecomeKey_ = true
     override var canBecomeKey: Bool { canBecomeKey_ }
+    private var hasBeenShown = false
 
     convenience init() {
         self.init(contentRect: .zero, styleMask: [.titled, .miniaturizable, .closable], backing: .buffered, defer: false)
@@ -14,7 +15,8 @@ class PermissionsWindow: NSWindow {
     }
 
     func show() {
-        guard !isVisible else { return }
+        guard !hasBeenShown else { return }
+        hasBeenShown = true
         Logger.debug { "" }
         SystemPermissions.setFrequentTimer()
         center()
@@ -79,6 +81,7 @@ class PermissionsWindow: NSWindow {
     }
 
     override func close() {
+        hasBeenShown = false
         hideAppIfLastWindowIsClosed()
         super.close()
     }
