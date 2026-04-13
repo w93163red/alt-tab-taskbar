@@ -4,7 +4,6 @@ class TaskbarManager {
     static var shared = TaskbarManager()
     var taskbarPanels = [ScreenUuid: TaskbarPanel]()
     var isEnabled = false
-    private var badgeRefreshTimer: Timer?
 
     func enable() {
         guard !isEnabled else { return }
@@ -13,14 +12,11 @@ class TaskbarManager {
         updateContents()
         // adjust any already-maximized windows to leave room for taskbar
         adjustAllWindows()
-        startBadgeRefreshTimer()
     }
 
     func disable() {
         guard isEnabled else { return }
         isEnabled = false
-        badgeRefreshTimer?.invalidate()
-        badgeRefreshTimer = nil
         for (_, panel) in taskbarPanels {
             panel.orderOut(nil)
         }
@@ -92,7 +88,7 @@ class TaskbarManager {
         let screenSpaces = Spaces.screenSpacesMap[screenUuid] ?? []
         let visibleSpacesForScreen = Spaces.visibleSpaces.filter { screenSpaces.contains($0) }
 
-        return Windows.list.sorted {$0.creationOrder < $1.creationOrder }.filter { window in
+        return Windows.list.sorted { $0.creationOrder < $1.creationOrder }.filter { window in
             // basic filter: should show to user and not a windowless app
             guard !window.isWindowlessApp else { return false }
 
@@ -123,66 +119,6 @@ class TaskbarManager {
             }
 
             return true
-        }
-    }
-
-    private func startBadgeRefreshTimer() {
-        badgeRefreshTimer = Timer.scheduledTimer(withTimeInterval: 5, repeats: true) { [weak self] _ in
-            self?.refreshBadges()
-        }
-    }
-
-    func refreshBadges() {
-        guard isEnabled, !Preferences.hideAppBadges else { return }
-        BackgroundWork.accessibilityCommandsQueue.addOperation {
-            guard let dockApp = NSRunningApplication.runningApplications(withBundleIdentifier: "com.apple.dock").first else { return }
-            let dockPid = dockApp.processIdentifier
-            let axDock = AXUIElementCreateApplication(dockPid)
-            var childrenRef: CFTypeRef?
-            guard AXUIElementCopyAttributeValue(axDock, kAXChildrenAttribute as CFString, &childrenRef) == .success,
-                  let children = childrenRef as? [AXUIElement] else { return }
-            // find the list element in dock
-            var listElement: AXUIElement?
-            for child in children {
-                var roleRef: CFTypeRef?
-                if AXUIElementCopyAttributeValue(child, kAXRoleAttribute as CFString, &roleRef) == .success,
-                   let role = roleRef as? String, role == kAXListRole {
-                    listElement = child
-                    break
-                }
-            }
-            guard let list = listElement else { return }
-            var listChildrenRef: CFTypeRef?
-            guard AXUIElementCopyAttributeValue(list, kAXChildrenAttribute as CFString, &listChildrenRef) == .success,
-                  let listChildren = listChildrenRef as? [AXUIElement] else { return }
-            var results = [(URL?, String?)]()
-            for item in listChildren {
-                var subroleRef: CFTypeRef?
-                var runningRef: CFTypeRef?
-                var urlRef: CFTypeRef?
-                var labelRef: CFTypeRef?
-                AXUIElementCopyAttributeValue(item, kAXSubroleAttribute as CFString, &subroleRef)
-                AXUIElementCopyAttributeValue(item, "AXIsApplicationRunning" as CFString, &runningRef)
-                guard let subrole = subroleRef as? String, subrole == "AXApplicationDockItem",
-                      let running = runningRef as? Bool, running else { continue }
-                AXUIElementCopyAttributeValue(item, kAXURLAttribute as CFString, &urlRef)
-                AXUIElementCopyAttributeValue(item, kAXStatusLabelAttribute as CFString, &labelRef)
-                let url = urlRef as? URL ?? (urlRef as? NSURL)?.absoluteURL
-                let label = labelRef as? String
-                results.append((url, label))
-            }
-            guard !results.isEmpty else { return }
-            DispatchQueue.main.async {
-                for app in Applications.list {
-                    if app.runningApplication.activationPolicy == .regular,
-                       let matchingItem = (results.first { $0.0 == app.bundleURL }) {
-                        app.dockLabel = matchingItem.1
-                    } else {
-                        app.dockLabel = nil
-                    }
-                }
-                TaskbarManager.shared.updateContents()
-            }
         }
     }
 
