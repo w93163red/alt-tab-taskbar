@@ -10,6 +10,7 @@ class SpacesEvents {
             Logger.debug { notification.name.rawValue }
             // refresh space data so taskbar can filter by current space
             Spaces.refresh()
+            TaskbarManager.shared.updateContents()
             // Workaround for Safari full-screen videos
             // when full-screening a video, Safari spawns a second full-screen window called "Safari"
             // this window doesn't emit resize/move events. It doesn't pass isActualWindow on creation. It's added on focusedWindowChanged

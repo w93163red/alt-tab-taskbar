@@ -1,5 +1,8 @@
 import ShortcutRecorder
 
+typealias CGSSpaceID = UInt64
+typealias ScreenUuid = CFString
+
 class App {
     class AppMock {
         var appIsBeingUsed = false

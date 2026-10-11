@@ -6,7 +6,8 @@ class TaskbarPanel: NSPanel {
 
     init(screenUuid: ScreenUuid) {
         self.screenUuid = screenUuid
-        super.init(contentRect: .zero, styleMask: [.borderless, .nonactivatingPanel], backing: .buffered, defer: false)
+        super.init(contentRect: .zero, styleMask: [.borderless, .nonactivatingPanel],
+            backing: .buffered, defer: false)
         isFloatingPanel = true
         // Use dock window level (20) so taskbar stays above maximized windows
         // This is the same level macOS Dock uses
@@ -16,7 +17,6 @@ class TaskbarPanel: NSPanel {
         titleVisibility = .hidden
         backgroundColor = .clear
         animationBehavior = .none
-        // Accept mouse events even when not key window
         acceptsMouseMovedEvents = true
 
         taskbarView = TaskbarView()
@@ -50,6 +50,5 @@ class TaskbarPanel: NSPanel {
         taskbarView.updateItems(windows)
     }
 
-    // Allow the panel to receive mouse events without becoming key
     override var canBecomeKey: Bool { true }
 }

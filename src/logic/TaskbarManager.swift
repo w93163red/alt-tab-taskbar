@@ -8,9 +8,7 @@ class TaskbarManager {
     func enable() {
         guard !isEnabled else { return }
         isEnabled = true
-        createPanelsForAllScreens()
-        updateContents()
-        // adjust any already-maximized windows to leave room for taskbar
+        repositionAll()
         adjustAllWindows()
     }
 
@@ -23,30 +21,17 @@ class TaskbarManager {
         taskbarPanels.removeAll()
     }
 
-    private func createPanelsForAllScreens() {
-        for screen in NSScreen.screens {
-            if let uuid = screen.uuid(), taskbarPanels[uuid] == nil {
-                let panel = TaskbarPanel(screenUuid: uuid)
-                panel.positionAtScreenBottom(screen)
-                panel.orderFront(nil)
-                taskbarPanels[uuid] = panel
-            }
-        }
-    }
-
     func repositionAll() {
         guard isEnabled else { return }
 
         let currentUuids = Set(NSScreen.screens.compactMap { $0.uuid() })
         let existingUuids = Set(taskbarPanels.keys)
 
-        // remove panels for disconnected screens
         for uuid in existingUuids.subtracting(currentUuids) {
             taskbarPanels[uuid]?.orderOut(nil)
             taskbarPanels.removeValue(forKey: uuid)
         }
 
-        // add panels for new screens and reposition existing
         for screen in NSScreen.screens {
             if let uuid = screen.uuid() {
                 if let panel = taskbarPanels[uuid] {
@@ -65,61 +50,45 @@ class TaskbarManager {
 
     func updateContents() {
         guard isEnabled else { return }
+        Windows.refreshTabsAndSpaces()
+        let windowsWithFacts = Windows.list.sorted { $0.creationOrder < $1.creationOrder }.map {
+            (window: $0, facts: windowFacts($0))
+        }
+        let facts = windowsWithFacts.map { $0.facts }
+        let settings = TaskbarFilterSettings(
+            showAllSpaces: Preferences.taskbarSpacesToShow == .all,
+            showMinimized: Preferences.taskbarShowMinimizedWindows != .hide,
+            showHidden: Preferences.taskbarShowHiddenWindows != .hide,
+            showFullscreen: Preferences.taskbarShowFullscreenWindows != .hide,
+            showTabs: Preferences.showTabsAsWindows
+        )
         for (screenUuid, panel) in taskbarPanels {
-            if hasFullscreenWindow(on: screenUuid) {
+            let visibleSpaces = TaskbarTestable.visibleSpaces(Spaces.visibleSpaces,
+                screenSpaces: Spaces.screenSpacesMap[screenUuid] ?? [],
+                screensHaveSeparateSpaces: NSScreen.screensHaveSeparateSpaces)
+            if TaskbarTestable.hidesTaskbar(facts, onScreen: screenUuid, visibleSpaces: visibleSpaces) {
                 panel.orderOut(nil)
             } else {
                 panel.orderFront(nil)
-                let filteredWindows = filterWindowsForTaskbar(screenUuid: screenUuid)
+                let filteredWindows = windowsWithFacts.filter {
+                    TaskbarTestable.isShown($0.facts, onScreen: screenUuid,
+                        visibleSpaces: visibleSpaces, settings)
+                }.map { $0.window }
                 panel.updateContents(filteredWindows)
             }
         }
     }
 
-    private func hasFullscreenWindow(on screenUuid: ScreenUuid) -> Bool {
-        return Windows.list.contains { window in
-            !window.isWindowlessApp &&
-                window.screenId == screenUuid &&
-                window.isFullscreen
-        }
-    }
-
-    private func filterWindowsForTaskbar(screenUuid: ScreenUuid) -> [Window] {
-        let screenSpaces = Spaces.screenSpacesMap[screenUuid] ?? []
-        let visibleSpacesForScreen = Spaces.visibleSpaces.filter { screenSpaces.contains($0) }
-
-        return Windows.list.sorted { $0.creationOrder < $1.creationOrder }.filter { window in
-            // basic filter: should show to user and not a windowless app
-            guard !window.isWindowlessApp else { return false }
-
-            // filter by screen
-            guard window.screenId == screenUuid else { return false }
-
-            // filter by space
-            let spacesToShow = Preferences.taskbarSpacesToShow
-            if spacesToShow == .visible {
-                // only show windows on visible space for this screen
-                guard visibleSpacesForScreen.contains(where: { visibleSpace in window.spaceIds.contains { $0 == visibleSpace } }) else { return false }
-            }
-            // .all shows windows from all spaces
-
-            // filter minimized windows
-            if Preferences.taskbarShowMinimizedWindows == .hide && window.isMinimized {
-                return false
-            }
-
-            // filter hidden windows
-            if Preferences.taskbarShowHiddenWindows == .hide && window.isHidden {
-                return false
-            }
-
-            // filter fullscreen windows
-            if Preferences.taskbarShowFullscreenWindows == .hide && window.isFullscreen {
-                return false
-            }
-
-            return true
-        }
+    private func windowFacts(_ window: Window) -> TaskbarWindowFacts {
+        return TaskbarWindowFacts(
+            isWindowlessApp: window.isWindowlessApp,
+            isTabbed: window.isTabbed,
+            isMinimized: window.isMinimized,
+            isHidden: window.isHidden,
+            isFullscreen: window.isFullscreen,
+            screenId: window.screenId,
+            spaceIds: window.spaceIds
+        )
     }
 
     func updateAppearance() {
@@ -128,8 +97,6 @@ class TaskbarManager {
         }
     }
 
-    /// Adjusts all windows that overlap with the taskbar
-    /// Called when taskbar is enabled or taskbar height changes
     func adjustAllWindows() {
         guard isEnabled else { return }
         for window in Windows.list {
@@ -137,52 +104,29 @@ class TaskbarManager {
         }
     }
 
-    /// Shrinks a window if its bottom edge overlaps the taskbar area
-    /// Handles maximized windows, tiled windows (e.g. left/right half in macOS Sequoia), etc.
-    /// Called when a window is resized or moved
     func adjustWindowIfNeeded(_ window: Window) {
         guard isEnabled else { return }
         guard !window.isWindowlessApp else { return }
-        guard !window.isFullscreen else { return } // don't adjust actual fullscreen windows
+        guard !window.isFullscreen else { return }
         guard let axUiElement = window.axUiElement else { return }
         guard let position = window.position, let size = window.size else { return }
         guard let screenId = window.screenId else { return }
-
-        // find the screen for this window
         guard let screen = NSScreen.screens.first(where: { $0.uuid() == screenId }) else { return }
 
-        let visibleFrame = screen.visibleFrame
-        let taskbarHeight = Preferences.taskbarHeight
+        let visibleFrameBottomY = TaskbarTestable.visibleFrameBottomY(screen.visibleFrame,
+            primaryScreenMaxY: NSMaxY(NSScreen.screens[0].frame))
+        guard let newHeight = TaskbarTestable.shrunkHeight(windowY: position.y, windowHeight: size.height,
+            visibleFrameBottomY: visibleFrameBottomY, taskbarHeight: Preferences.taskbarHeight)
+            else { return }
+        BackgroundWork.accessibilityCommandsQueue.addOperation {
+            var newSize = CGSize(width: size.width, height: newHeight)
+            if let sizeValue = AXValueCreate(.cgSize, &newSize) {
+                try? axUiElement.setAttribute(kAXSizeAttribute, sizeValue)
+            }
 
-        // convert screen coordinates (origin at bottom-left) to window coordinates (origin at top-left)
-        let screenTopLeftY = NSMaxY(NSScreen.screens[0].frame) - NSMaxY(visibleFrame)
-        let taskbarTop = screenTopLeftY + visibleFrame.height - taskbarHeight
-        let windowBottom = position.y + size.height
-
-        let tolerance: CGFloat = 2
-
-        // check if the window's bottom edge extends into the taskbar area
-        let overlapsTaskbar = windowBottom > taskbarTop + tolerance
-        // check if already adjusted (bottom edge is at taskbar top)
-        let isAlreadyAdjusted = abs(windowBottom - taskbarTop) <= tolerance
-
-        if overlapsTaskbar && !isAlreadyAdjusted {
-            // shrink window so its bottom edge sits at the top of the taskbar
-            let newHeight = taskbarTop - position.y
-
-            if newHeight > 0 && abs(size.height - newHeight) > tolerance {
-                BackgroundWork.accessibilityCommandsQueue.addOperation {
-                    var newSize = CGSize(width: size.width, height: newHeight)
-                    if let sizeValue = AXValueCreate(.cgSize, &newSize) {
-                        try? axUiElement.setAttribute(kAXSizeAttribute, sizeValue)
-                    }
-
-                    // re-set position in case resizing shifted it
-                    var newPosition = CGPoint(x: position.x, y: position.y)
-                    if let posValue = AXValueCreate(.cgPoint, &newPosition) {
-                        try? axUiElement.setAttribute(kAXPositionAttribute, posValue)
-                    }
-                }
+            var newPosition = CGPoint(x: position.x, y: position.y)
+            if let posValue = AXValueCreate(.cgPoint, &newPosition) {
+                try? axUiElement.setAttribute(kAXPositionAttribute, posValue)
             }
         }
     }

@@ -77,18 +77,24 @@ class Windows {
         // workaround: when Preferences > Mission Control > "Displays have separate Spaces" is unchecked,
         // switching between displays doesn't trigger .activeSpaceDidChangeNotification; we get the latest manually
         Spaces.refresh()
-        let spaceIdsAndIndexes = Spaces.idsAndIndexes.map { $0.0 }
-        lazy var cgsWindowIds = Spaces.windowsInSpaces(spaceIdsAndIndexes)
-        lazy var visibleCgsWindowIds = Spaces.windowsInSpaces(spaceIdsAndIndexes, false)
+        refreshTabsAndSpaces()
         for window in list {
-            detectTabbedWindows(window, cgsWindowIds, visibleCgsWindowIds)
-            window.updateSpacesAndScreen()
             refreshIfWindowShouldBeShownToTheUser(window)
         }
         refreshWhichWindowsToShowTheUser()
         sort()
         if (!list.contains { $0.shouldShowTheUser }) { return false }
         return true
+    }
+
+    static func refreshTabsAndSpaces() {
+        let spaceIdsAndIndexes = Spaces.idsAndIndexes.map { $0.0 }
+        lazy var cgsWindowIds = Spaces.windowsInSpaces(spaceIdsAndIndexes)
+        lazy var visibleCgsWindowIds = Spaces.windowsInSpaces(spaceIdsAndIndexes, false)
+        for window in list {
+            detectTabbedWindows(window, cgsWindowIds, visibleCgsWindowIds)
+            window.updateSpacesAndScreen()
+        }
     }
 
     // dispatch screenshot requests off the main-thread, then wait for completion

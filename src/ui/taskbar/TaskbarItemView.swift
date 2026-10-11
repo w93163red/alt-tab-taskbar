@@ -27,13 +27,11 @@ class TaskbarItemView: NSView {
         layer!.cornerRadius = 4
         layer!.masksToBounds = false
 
-        // app icon
         appIcon = NSImageView()
         appIcon.imageScaling = .scaleProportionallyUpOrDown
         appIcon.translatesAutoresizingMaskIntoConstraints = false
         addSubview(appIcon)
 
-        // title label
         titleLabel = NSTextField(labelWithString: "")
         titleLabel.font = NSFont.systemFont(ofSize: Preferences.taskbarFontSize)
         titleLabel.textColor = .labelColor
@@ -80,7 +78,6 @@ class TaskbarItemView: NSView {
         return true
     }
 
-    // Ensure tracking areas are set up when the view is added to window
     override func viewDidMoveToWindow() {
         super.viewDidMoveToWindow()
         if window != nil {
@@ -118,23 +115,16 @@ class TaskbarItemView: NSView {
     func updateContent(_ window: Window) {
         window_ = window
 
-        // update icon
         if let icon = window.icon {
             appIcon.image = NSImage(cgImage: icon, size: NSSize(width: iconSize, height: iconSize))
         } else {
             appIcon.image = nil
         }
 
-        // update font size (in case preference changed)
         titleLabel.font = NSFont.systemFont(ofSize: Preferences.taskbarFontSize)
 
-        // update title - show window title or app name
-        let title: String
-        if window.title.isEmpty {
-            title = window.application.localizedName ?? ""
-        } else {
-            title = window.title
-        }
+        let title = TaskbarTestable.displayTitle(windowTitle: window.title,
+            appName: window.application.localizedName)
         titleLabel.stringValue = title
         titleLabel.toolTip = title
 
@@ -163,12 +153,9 @@ class TaskbarItemView: NSView {
         }
     }
 
-    // MARK: - Mouse Events
-
     override func mouseEntered(with event: NSEvent) {
         isHovered = true
         updateBackgroundColor()
-        // show thumbnail preview after a short delay
         if let window = window_ {
             showPreviewTimer?.invalidate()
             showPreviewTimer = Timer.scheduledTimer(withTimeInterval: 0.3, repeats: false) { [weak self] _ in
@@ -181,7 +168,6 @@ class TaskbarItemView: NSView {
     override func mouseExited(with event: NSEvent) {
         isHovered = false
         updateBackgroundColor()
-        // hide thumbnail preview
         showPreviewTimer?.invalidate()
         showPreviewTimer = nil
         TaskbarPreviewPanel.shared.hide()
@@ -190,7 +176,6 @@ class TaskbarItemView: NSView {
     override func mouseUp(with event: NSEvent) {
         guard bounds.contains(convert(event.locationInWindow, from: nil)) else { return }
         guard let window = window_ else { return }
-        // if already focused, minimize; otherwise focus
         if window.application.focusedWindow?.cgWindowId == window.cgWindowId,
            window.application.runningApplication.isActive {
             window.minDemin()
@@ -203,7 +188,8 @@ class TaskbarItemView: NSView {
         guard bounds.contains(convert(event.locationInWindow, from: nil)),
               window_ != nil else { return }
         let menu = NSMenu()
-        let closeItem = NSMenuItem(title: NSLocalizedString("Close", comment: ""), action: #selector(closeWindow), keyEquivalent: "")
+        let closeItem = NSMenuItem(title: NSLocalizedString("Close", comment: ""),
+            action: #selector(closeWindow), keyEquivalent: "")
         closeItem.target = self
         menu.addItem(closeItem)
         NSMenu.popUpContextMenu(menu, with: event, for: self)

@@ -46,6 +46,7 @@ class App: AppCenterApplication {
     /// we put application code here which should be executed on init() and Preferences change
     func resetPreferencesDependentComponents() {
         thumbnailsPanel.thumbnailsView.reset()
+        TaskbarManager.shared.updateAppearance()
     }
 
     func restart() {
@@ -321,8 +322,7 @@ extension App: NSApplicationDelegate {
         CursorEvents.observe()
         TrackpadEvents.observe()
         CliEvents.observe()
-        // enable taskbar
-        TaskbarManager.shared.enable()
+        if Preferences.taskbarEnabled { TaskbarManager.shared.enable() }
         // login item and plist updates can be done a bit later, to accelerate launch
         DispatchQueue.main.asyncAfter(deadline: .now() + 2) { GeneralTab.startAtLoginCallback() }
         Logger.info { "Finished launching AltTab" }
